@@ -37,7 +37,7 @@
         $SKU
     )
 
-    if ($PSBoundParameters.Contains("UserPrincipalName"))
+    if ($PSBoundParameters.ContainsKey("UserPrincipalName"))
     {
 
         foreach ($Upn in $UserPrincipalName)
@@ -82,7 +82,7 @@
         }
     }
 
-    if ($PSBoundParameters.Contains("MsolUser"))
+    if ($PSBoundParameters.ContainsKey("MsolUser"))
     {
         foreach ($User in $MsolUser)
         {

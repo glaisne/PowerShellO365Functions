@@ -17,57 +17,85 @@
     (
         # Param1 help description
         [Parameter(Mandatory=$true,
+                   ParameterSetName="UserPrincipalName",
                    ValueFromPipelineByPropertyName=$true,
                    Position=0)]
         [string[]] $UserPrincipalName,
+
+        [Parameter(Mandatory=$true,
+                   ParameterSetName="MsolUserObject",
+                   ValueFromPipelineByPropertyName=$true,
+                   Position=0)]
+        [Microsoft.Online.Administration.User[]] $MsolUser,
         
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true,
                    Position=1)]
-        $SKU
+        [string]   $SKU
     )
 
-    foreach ($upn in $UserPrincipalName)
+    if ($PSBoundParameters.ContainsKey("UserPrincipalName"))
     {
-        $ServiceStatus
-        $MsolUser = $null
-        Write-Verbose "Attempting to access MS Online user $upn."
-        try
-        {
-            $MsolUser = Get-MsolUser -UserPrincipalName $upn -ErrorAction Stop
-           Write-Verbose "Successfully accessed MS Online user $upn."
-        }
-        catch
-        {
-            $err = $_
-            Write-Error -Exception $err.Exception -Message "Unable to access MS Online account for $upn : $($err.message)" -TargetObject $upn
-        }
 
-        if ($null -ne $MsolUser)
+
+
+        foreach ($upn in $UserPrincipalName)
         {
-            Write-verbose "Accessed user object is not null."
-            $FoundSku = $False
-            foreach ($License in $MsolUser.Licenses)
+            $ServiceStatus
+            $MsolUser = $null
+            Write-Verbose "Attempting to access MS Online user $upn."
+            try
             {
-                if ($License.AccountSkuId -eq $SKU)
-                {
-                    Write-verbose "This user has the proper SKU applied."
-                    $License.ServiceStatus
-                    $FoundSku = $True
-                    break
-                }
+                $MsolUser = Get-MsolUser -UserPrincipalName $upn -ErrorAction Stop
+               Write-Verbose "Successfully accessed MS Online user $upn."
+            }
+            catch
+            {
+                $err = $_
+                Write-Error -Exception $err.Exception -Message "Unable to access MS Online account for $upn : $($err.message)" -TargetObject $upn
             }
 
-        }
-        else
-        {
-            $null
-        }
+            if ($null -ne $MsolUser)
+            {
+                Write-verbose "Accessed user object is not null."
+                $FoundSku = $False
+                foreach ($License in $MsolUser.Licenses)
+                {
+                    if ($License.AccountSkuId -eq $SKU)
+                    {
+                        Write-verbose "This user has the proper SKU applied."
+                        $License.ServiceStatus
+                        $FoundSku = $True
+                        break
+                    }
+                }
 
-        if (-not $FoundSku)
+            }
+            else
+            {
+                $null
+            }
+
+            if (-not $FoundSku)
+            {
+                Write-verbose "The SKU was not found on this user."
+                $null
+            }
+        }
+    }
+
+    if ($PSBoundParameters.ContainsKey("MsolUser"))
+    {
+        $FoundSku = $False
+        foreach ($License in $MsolUser.Licenses)
         {
-            Write-verbose "The SKU was not found on this user."
-            $null
+            if ($License.AccountSkuId -eq $SKU)
+            {
+                Write-verbose "This user has the proper SKU applied."
+                $License.ServiceStatus
+                $FoundSku = $True
+                break
+            }
         }
     }
 }
